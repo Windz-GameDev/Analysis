@@ -1,0 +1,35 @@
+IOR-2.10.3: MPI Coordinated Test of Parallel I/O
+
+Run began: Sat Nov 25 08:18:24 2023
+Command line used: ./IOR
+Machine: Linux instance-1
+
+Summary:
+	api                = POSIX
+	test filename      = testFile
+	access             = single-shared-file
+	ordering in a file = sequential offsets
+	ordering inter file= no tasks offsets
+	clients            = 4 (1 per node)
+	repetitions        = 1
+	xfersize           = 262144 bytes
+	blocksize          = 1 MiB
+	aggregate filesize = 4 MiB
+
+WARNING: inconsistent file size by different tasks.
+WARNING: Expected aggregate file size       = 4194304.
+WARNING: Stat() of aggregate file size      = 1048576.
+WARNING: Using actual aggregate bytes moved = 4194304.
+WARNING: inconsistent file size by different tasks.
+WARNING: Expected aggregate file size       = 4194304.
+WARNING: Stat() of aggregate file size      = 1048576.
+WARNING: Using actual aggregate bytes moved = 4194304.
+Operation  Max (MiB)  Min (MiB)  Mean (MiB)   Std Dev  Max (OPs)  Min (OPs)  Mean (OPs)   Std Dev  Mean (s)  
+---------  ---------  ---------  ----------   -------  ---------  ---------  ----------   -------  --------
+write        2521.05    2521.05     2521.05      0.00   10084.20   10084.20    10084.20      0.00   0.00159   EXCEL
+read         5989.65    5989.65     5989.65      0.00   23958.59   23958.59    23958.59      0.00   0.00067   EXCEL
+
+Max Write: 2521.05 MiB/sec (2643.51 MB/sec)
+Max Read:  5989.65 MiB/sec (6280.60 MB/sec)
+
+Run finished: Sat Nov 25 08:18:24 2023
