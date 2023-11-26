@@ -1,0 +1,27 @@
+IOR-2.10.3: MPI Coordinated Test of Parallel I/O
+
+Run began: Tue Nov 21 19:20:35 2023
+Command line used: /home/ec2-user/IOR-MPI/IOR/src/C/./IOR
+Machine: Linux myqueue-st-t2micro-1
+
+Summary:
+	api                = POSIX
+	test filename      = testFile
+	access             = single-shared-file
+	ordering in a file = sequential offsets
+	ordering inter file= no tasks offsets
+	clients            = 6 (1 per node)
+	repetitions        = 1
+	xfersize           = 262144 bytes
+	blocksize          = 1 MiB
+	aggregate filesize = 6 MiB
+
+Operation  Max (MiB)  Min (MiB)  Mean (MiB)   Std Dev  Max (OPs)  Min (OPs)  Mean (OPs)   Std Dev  Mean (s)  
+---------  ---------  ---------  ----------   -------  ---------  ---------  ----------   -------  --------
+write         147.18     147.18      147.18      0.00     588.72     588.72      588.72      0.00   0.04077   EXCEL
+read          276.33     276.33      276.33      0.00    1105.31    1105.31     1105.31      0.00   0.02171   EXCEL
+
+Max Write: 147.18 MiB/sec (154.33 MB/sec)
+Max Read:  276.33 MiB/sec (289.75 MB/sec)
+
+Run finished: Tue Nov 21 19:20:35 2023
