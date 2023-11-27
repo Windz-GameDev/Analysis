@@ -253,8 +253,7 @@ annotate_ttest_results(ax2, avg_read_t_test_result)
 
 plt.tight_layout()
 plt.savefig(os.path.join(results_directory, 'IOR_Benchmark_Plots.png'))
-
-# ... [Repeat for NPB plots] ...
+plt.close()
 
 plt.figure(figsize=(14, 6))
 
@@ -276,6 +275,7 @@ annotate_ttest_results(ax4, npb_time_t_test_result)
 
 plt.tight_layout()
 plt.savefig(os.path.join(results_directory, 'NPB_Benchmark_Plots.png'))
+plt.close()
 
 # Create a datasets directory if it doesn't exist
 datasets_directory = 'datasets'
