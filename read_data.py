@@ -1,6 +1,9 @@
 import re
 import pandas as pd
 import os
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Define mappings for each cloud provider and benchmark
 day_mappings = {
@@ -97,6 +100,121 @@ ior_data_gcp, npb_data_gcp = process_directory('GCP', 'GCP', ior_keywords, npb_k
 combined_ior_df = pd.DataFrame(ior_data_aws + ior_data_gcp)
 combined_npb_df = pd.DataFrame(npb_data_aws + npb_data_gcp)
 
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+
 # Display the first few rows of the DataFrames
 print(combined_ior_df)
 print(combined_npb_df)
+
+# Convert relevant columns to numeric types
+combined_ior_df['Max Write'] = pd.to_numeric(combined_ior_df['Max Write'], errors='coerce')
+combined_ior_df['Max Read'] = pd.to_numeric(combined_ior_df['Max Read'], errors='coerce')
+combined_ior_df['Number of Nodes'] = pd.to_numeric(combined_ior_df['Number of Nodes'], errors='coerce')
+
+# Drop rows with NaN values if any were created during conversion
+combined_ior_df = combined_ior_df.dropna()
+
+# Calculate averages for each node configuration for both AWS and GCP
+avg_ior_metrics_df = combined_ior_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Max Write': 'mean', 'Max Read': 'mean'}).reset_index()
+
+avg_ior_metrics_df.rename(columns={'Max Write': 'Average Max Write', 'Max Read': 'Average Max Read'}, inplace=True)
+print("\n", avg_ior_metrics_df)
+
+# Splitting the data into AWS and GCP groups
+aws_avg_write = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Write']
+gcp_avg_write = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Write']
+aws_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Read']
+gcp_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Read']
+
+# Performing t-tests
+avg_write_t_test = stats.ttest_ind(aws_avg_write, gcp_avg_write, equal_var=False)  # T-test for Average Max Write
+avg_read_t_test = stats.ttest_ind(aws_avg_read, gcp_avg_read, equal_var=False)    # T-test for Average Max Read
+
+# Outputting the results
+avg_write_t_test_result = {"T-statistic": avg_write_t_test.statistic, "P-value": avg_write_t_test.pvalue}
+avg_read_t_test_result = {"T-statistic": avg_read_t_test.statistic, "P-value": avg_read_t_test.pvalue}
+
+# Print the results
+print("\nIOR Benchmark - T-test Results for Average Max Write:")
+print(avg_write_t_test_result)
+print("\nIOR Benchmark - T-test Results for Average Max Read:")
+print(avg_read_t_test_result)
+
+# Process NPB data
+combined_npb_df['Mop/s total'] = pd.to_numeric(combined_npb_df['Mop/s total'], errors='coerce')
+combined_npb_df['Time in seconds'] = pd.to_numeric(combined_npb_df['Time in seconds'], errors='coerce')
+combined_npb_df['Number of Nodes'] = pd.to_numeric(combined_npb_df['Number of Nodes'], errors='coerce')
+
+# Drop rows with NaN values if any were created during conversion
+combined_npb_df = combined_npb_df.dropna()
+
+# Calculate averages for each node configuration for both AWS and GCP
+avg_npb_metrics_df = combined_npb_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Mop/s total': 'mean', 'Time in seconds': 'mean'}).reset_index()
+
+avg_npb_metrics_df.rename(columns={'Mop/s total': 'Average Mop/s', 'Time in seconds': 'Average Time'}, inplace=True)
+print("\n", avg_npb_metrics_df)
+
+# Splitting the data into AWS and GCP groups for NPB
+aws_avg_mops = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Mop/s']
+gcp_avg_mops = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Mop/s']
+aws_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Time']
+gcp_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Time']
+
+# Performing t-tests for NPB benchmark
+npb_mops_t_test = stats.ttest_ind(aws_avg_mops, gcp_avg_mops, equal_var=False)  # T-test for Average Mop/s
+npb_time_t_test = stats.ttest_ind(aws_avg_time, gcp_avg_time, equal_var=False)  # T-test for Average Time
+
+# Outputting the results
+npb_mops_t_test_result = {"T-statistic": npb_mops_t_test.statistic, "P-value": npb_mops_t_test.pvalue}
+npb_time_t_test_result = {"T-statistic": npb_time_t_test.statistic, "P-value": npb_time_t_test.pvalue}
+
+# Print the results
+print("\nNPB Benchmark - T-test Results for Average Mop/s:")
+print(npb_mops_t_test_result)
+print("\nNPB Benchmark - T-test Results for Average Time:")
+print(npb_time_t_test_result)
+print("\n")
+
+# Setting the style for the plots
+sns.set(style="whitegrid")
+
+# Creating column charts for the IOR benchmark (Average Max Write and Average Max Read)
+plt.figure(figsize=(14, 6))
+
+# Plot for Average Max Write
+plt.subplot(1, 2, 1)
+sns.barplot(x='Number of Nodes', y='Average Max Write', hue='Cloud Provider', data=avg_ior_metrics_df)
+plt.title('IOR Benchmark - Average Max Write')
+plt.xlabel('Number of Nodes')
+plt.ylabel('Average Max Write')
+
+# Plot for Average Max Read
+plt.subplot(1, 2, 2)
+sns.barplot(x='Number of Nodes', y='Average Max Read', hue='Cloud Provider', data=avg_ior_metrics_df)
+plt.title('IOR Benchmark - Average Max Read')
+plt.xlabel('Number of Nodes')
+plt.ylabel('Average Max Read')
+
+plt.tight_layout()
+plt.show()
+
+# Creating column charts for the NPB benchmark (Average Mop/s and Average Time)
+plt.figure(figsize=(14, 6))
+
+# Plot for Average Mop/s
+plt.subplot(1, 2, 1)
+sns.barplot(x='Number of Nodes', y='Average Mop/s', hue='Cloud Provider', data=avg_npb_metrics_df)
+plt.title('NPB Benchmark - Average Mop/s')
+plt.xlabel('Number of Nodes')
+plt.ylabel('Average Mop/s')
+
+# Plot for Average Time
+plt.subplot(1, 2, 2)
+sns.barplot(x='Number of Nodes', y='Average Time', hue='Cloud Provider', data=avg_npb_metrics_df)
+plt.title('NPB Benchmark - Average Time')
+plt.xlabel('Number of Nodes')
+plt.ylabel('Average Time (Seconds)')
+
+plt.tight_layout()
+plt.show()
