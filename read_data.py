@@ -121,6 +121,10 @@ def annotate_ttest_results(ax, t_test_result, offset_below_title=0.2):
     ax.text(0.5, 1 - offset_below_title, f"T-test Results:\nT-statistic = {t_test_result['T-statistic']:.2f}\nP-value = {t_test_result['P-value']:.4f}",
             horizontalalignment='center', fontsize=10, transform=ax.transAxes, bbox=dict(facecolor='white', alpha=0.5))
 
+# Helper function to sanitize metric names for file names
+def sanitize_filename(name):
+    return name.replace(" ", "_").replace("/", "_")
+
 # Define the keywords for IOR and NPB metrics
 ior_keywords = ['Max Write', 'Max Read']
 npb_keywords = ['Mop/s total', 'Time in seconds']
@@ -346,3 +350,47 @@ add_stats_to_boxplot(box_plot, combined_npb_df, 'Time in seconds', ax, fig)
 plt.subplots_adjust(bottom=0.3)
 plt.savefig(os.path.join(results_directory, 'boxplots', 'NPB_Benchmark_Time.png'))
 plt.close()
+
+# Loop through metrics for IOR benchmark
+for metric_to_plot in ['Max Write', 'Max Read']:
+
+    # Setting the style for the plots
+    sns.set(style="whitegrid")
+
+    barplot_data = combined_ior_df[['Cloud Provider', 'Number of Nodes', 'Day', metric_to_plot]].copy()
+    barplot_data['Group'] = barplot_data['Cloud Provider'] + barplot_data['Number of Nodes'].astype(str) + 'Node'
+
+    plt.figure(figsize=(15, 6))
+    sns.barplot(x='Group', y=metric_to_plot, hue='Day', data=barplot_data, palette='deep', errorbar=None)
+    plt.xlabel('Group')
+    plt.ylabel(metric_to_plot)
+    plt.title(f'IOR Benchmark - {metric_to_plot} by Group and Day')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Dynamic file name
+    file_name = f'IOR_{metric_to_plot.replace(" ", "_")}_Grouped_Barplot.png'
+    plt.savefig(os.path.join(results_directory, file_name))
+    plt.close()
+
+# Loop through metrics for NPB benchmark
+for metric_to_plot in ['Mop/s total', 'Time in seconds']:
+
+    # Setting the style for the plots
+    sns.set(style="whitegrid")
+
+    barplot_data = combined_npb_df[['Cloud Provider', 'Number of Nodes', 'Day', metric_to_plot]].copy()
+    barplot_data['Group'] = barplot_data['Cloud Provider'] + barplot_data['Number of Nodes'].astype(str) + 'Node'
+
+    plt.figure(figsize=(15, 6))
+    sns.barplot(x='Group', y=metric_to_plot, hue='Day', data=barplot_data, palette='deep', errorbar=None)
+    plt.xlabel('Group')
+    plt.ylabel(metric_to_plot)
+    plt.title(f'NPB Benchmark - {metric_to_plot} by Group and Day')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Use the sanitize_filename function for the file name
+    file_name = f'NPB_{sanitize_filename(metric_to_plot)}_Grouped_Barplot.png'
+    plt.savefig(os.path.join(results_directory, file_name))
+    plt.close()
