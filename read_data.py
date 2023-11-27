@@ -88,6 +88,39 @@ def process_directory(directory, cloud_provider, ior_keywords, npb_keywords):
                 npb_data.append(data)
     return ior_data, npb_data
 
+# Function to add descriptive statistics to a boxplot
+def add_stats_to_boxplot(box_plot, df, y):
+    for i in range(len(box_plot.get_xticklabels())):
+        for j, provider in enumerate(['AWS', 'GCP']):
+            stats = df[(df['Day'] == box_plot.get_xticklabels()[i].get_text()) & (df['Cloud Provider'] == provider)][y].describe()
+            iqr = stats['75%'] - stats['25%']
+            box_plot.text(i - 0.2 + j * 0.4, box_plot.get_ylim()[0], f"{provider}\nMin: {stats['min']:.2f}\nQ1: {stats['25%']:.2f}\nMedian: {stats['50%']:.2f}\nQ3: {stats['75%']:.2f}\nMax: {stats['max']:.2f}\nIQR: {iqr:.2f}", verticalalignment='top', horizontalalignment='center', fontsize=8)
+
+# Improved function to space AWS and GCP provider statistics further apart
+def add_stats_to_boxplot(box_plot, df, y, ax, fig):
+    num_days = len(df['Day'].unique())
+    for i, day in enumerate(sorted(df['Day'].unique())):
+        day_data = df[df['Day'] == day]
+        for j, provider in enumerate(['AWS', 'GCP']):
+            provider_data = day_data[day_data['Cloud Provider'] == provider]
+            stats = provider_data[y].describe()
+            if stats.count() > 0:  # Check if there are any values to describe
+                iqr = stats['75%'] - stats['25%']
+                stats_text = f"{provider}\nMin: {stats['min']:.2f}\n1Q: {stats['25%']:.2f}\n" \
+                             f"Median: {stats['50%']:.2f}\n3Q: {stats['75%']:.2f}\n" \
+                             f"Max: {stats['max']:.2f}\nIQR: {iqr:.2f}"
+                # Adjust the horizontal position for each provider
+                x_position = (i / num_days) + (j * 0.12)  # Spacing between providers
+                fig.text(x_position, -0.15, stats_text,  # Adjust vertical position
+                         verticalalignment='top', horizontalalignment='left', fontsize=8, family='monospace',
+                         transform=ax.transAxes)
+
+# Function to annotate bar plots with t-test results
+def annotate_ttest_results(ax, t_test_result, offset_below_title=0.2):
+    # Annotate with existing t-test results
+    ax.text(0.5, 1 - offset_below_title, f"T-test Results:\nT-statistic = {t_test_result['T-statistic']:.2f}\nP-value = {t_test_result['P-value']:.4f}",
+            horizontalalignment='center', fontsize=10, transform=ax.transAxes, bbox=dict(facecolor='white', alpha=0.5))
+
 # Define the keywords for IOR and NPB metrics
 ior_keywords = ['Max Write', 'Max Read']
 npb_keywords = ['Mop/s total', 'Time in seconds']
@@ -100,6 +133,23 @@ ior_data_gcp, npb_data_gcp = process_directory('GCP', 'GCP', ior_keywords, npb_k
 combined_ior_df = pd.DataFrame(ior_data_aws + ior_data_gcp)
 combined_npb_df = pd.DataFrame(npb_data_aws + npb_data_gcp)
 
+# Convert 'Day', 'Test Iteration', 'Number of Nodes', and metric columns to numeric types
+combined_ior_df['Day'] = pd.to_numeric(combined_ior_df['Day'], errors='coerce')
+combined_ior_df['Test Iteration'] = pd.to_numeric(combined_ior_df['Test Iteration'], errors='coerce')
+combined_ior_df['Number of Nodes'] = pd.to_numeric(combined_ior_df['Number of Nodes'], errors='coerce')
+combined_ior_df['Max Write'] = pd.to_numeric(combined_ior_df['Max Write'], errors='coerce')
+combined_ior_df['Max Read'] = pd.to_numeric(combined_ior_df['Max Read'], errors='coerce')
+
+combined_npb_df['Day'] = pd.to_numeric(combined_npb_df['Day'], errors='coerce')
+combined_npb_df['Test Iteration'] = pd.to_numeric(combined_npb_df['Test Iteration'], errors='coerce')
+combined_npb_df['Number of Nodes'] = pd.to_numeric(combined_npb_df['Number of Nodes'], errors='coerce')
+combined_npb_df['Mop/s total'] = pd.to_numeric(combined_npb_df['Mop/s total'], errors='coerce')
+combined_npb_df['Time in seconds'] = pd.to_numeric(combined_npb_df['Time in seconds'], errors='coerce')
+
+# Drop rows with NaN values that were created during conversion
+combined_ior_df.dropna(inplace=True)
+combined_npb_df.dropna(inplace=True)
+
 # Reorder columns to make 'Cloud Provider' and 'Number of Nodes' first
 ior_columns = ['Cloud Provider', 'Number of Nodes'] + [col for col in combined_ior_df.columns if col not in ['Cloud Provider', 'Number of Nodes']]
 npb_columns = ['Cloud Provider', 'Number of Nodes'] + [col for col in combined_npb_df.columns if col not in ['Cloud Provider', 'Number of Nodes']]
@@ -107,28 +157,17 @@ npb_columns = ['Cloud Provider', 'Number of Nodes'] + [col for col in combined_n
 combined_ior_df = combined_ior_df[ior_columns]
 combined_npb_df = combined_npb_df[npb_columns]
 
-
 # If we need to print the whole dataset
-# pd.set_option('display.max_rows', None)
-# pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 
 # Display the first few rows of the DataFrames
 print(combined_ior_df)
 print(combined_npb_df)
 
-# Convert relevant columns to numeric types
-combined_ior_df['Max Write'] = pd.to_numeric(combined_ior_df['Max Write'], errors='coerce')
-combined_ior_df['Max Read'] = pd.to_numeric(combined_ior_df['Max Read'], errors='coerce')
-combined_ior_df['Number of Nodes'] = pd.to_numeric(combined_ior_df['Number of Nodes'], errors='coerce')
-
-# Drop rows with NaN values if any were created during conversion
-combined_ior_df = combined_ior_df.dropna()
-
 # Calculate averages for each node configuration for both AWS and GCP
 avg_ior_metrics_df = combined_ior_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Max Write': 'mean', 'Max Read': 'mean'}).reset_index()
-
 avg_ior_metrics_df.rename(columns={'Max Write': 'Average Max Write', 'Max Read': 'Average Max Read'}, inplace=True)
-print("\n", avg_ior_metrics_df)
 
 # Splitting the data into AWS and GCP groups
 aws_avg_write = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Write']
@@ -193,36 +232,48 @@ if not os.path.exists(results_directory):
 # Setting the style for the plots
 sns.set(style="whitegrid")
 
-# Save the plots
+# Create bar plots and add t-test results
 plt.figure(figsize=(14, 6))
-# Plot for Average Max Write
-plt.subplot(1, 2, 1)
+
+# Plot for IOR Average Max Write
+ax1 = plt.subplot(1, 2, 1)
 sns.barplot(x='Number of Nodes', y='Average Max Write', hue='Cloud Provider', data=avg_ior_metrics_df)
-plt.title('IOR Benchmark - Average Max Write')
-plt.xlabel('Number of Nodes')
-plt.ylabel('Average Max Write')
-# Plot for Average Max Read
-plt.subplot(1, 2, 2)
+ax1.set_title('IOR Benchmark - Average Max Write', fontsize=12)
+ax1.set_xlabel('Number of Nodes')
+ax1.set_ylabel('Average Max Write')
+annotate_ttest_results(ax1, avg_write_t_test_result)
+
+# Plot for IOR Average Max Read
+ax2 = plt.subplot(1, 2, 2)
 sns.barplot(x='Number of Nodes', y='Average Max Read', hue='Cloud Provider', data=avg_ior_metrics_df)
-plt.title('IOR Benchmark - Average Max Read')
-plt.xlabel('Number of Nodes')
-plt.ylabel('Average Max Read')
+ax2.set_title('IOR Benchmark - Average Max Read', fontsize=12)
+ax2.set_xlabel('Number of Nodes')
+ax2.set_ylabel('Average Max Read')
+annotate_ttest_results(ax2, avg_read_t_test_result)
+
 plt.tight_layout()
 plt.savefig(os.path.join(results_directory, 'IOR_Benchmark_Plots.png'))
 
+# ... [Repeat for NPB plots] ...
+
 plt.figure(figsize=(14, 6))
-# Plot for Average Mop/s
-plt.subplot(1, 2, 1)
+
+# Plot for NPB Average Mop/s
+ax3 = plt.subplot(1, 2, 1)
 sns.barplot(x='Number of Nodes', y='Average Mop/s', hue='Cloud Provider', data=avg_npb_metrics_df)
-plt.title('NPB Benchmark - Average Mop/s')
-plt.xlabel('Number of Nodes')
-plt.ylabel('Average Mop/s')
-# Plot for Average Time
-plt.subplot(1, 2, 2)
+ax3.set_title('NPB Benchmark - Average Mop/s', fontsize=12)
+ax3.set_xlabel('Number of Nodes')
+ax3.set_ylabel('Average Mop/s')
+annotate_ttest_results(ax3, npb_mops_t_test_result)
+
+# Plot for NPB Average Time
+ax4 = plt.subplot(1, 2, 2)
 sns.barplot(x='Number of Nodes', y='Average Time', hue='Cloud Provider', data=avg_npb_metrics_df)
-plt.title('NPB Benchmark - Average Time')
-plt.xlabel('Number of Nodes')
-plt.ylabel('Average Time (Seconds)')
+ax4.set_title('NPB Benchmark - Average Time', fontsize=12)
+ax4.set_xlabel('Number of Nodes')
+ax4.set_ylabel('Average Time (Seconds)')
+annotate_ttest_results(ax4, npb_time_t_test_result)
+
 plt.tight_layout()
 plt.savefig(os.path.join(results_directory, 'NPB_Benchmark_Plots.png'))
 
@@ -237,52 +288,61 @@ avg_npb_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_npb_metrics.csv'
 combined_ior_df.to_csv(os.path.join(datasets_directory, 'combined_ior_df.csv'), index=False)
 combined_npb_df.to_csv(os.path.join(datasets_directory, 'combined_npb_df.csv'), index=False)   
 
-'''
+boxplots_directory = os.path.join(results_directory, 'boxplots')
+if not os.path.exists(boxplots_directory):
+    os.makedirs(boxplots_directory)
 
-# Calculate the mean for each day across all iterations for IOR
-ior_day_mean = combined_ior_df.groupby(['Cloud Provider', 'Day']).mean().reset_index()
+# Define a larger figure size for the box plots
+figsize = (12, 12)  # Adjust this size as needed
 
-# Create box plots for IOR with Day on x-axis and metrics on y-axis
-plt.figure(figsize=(14, 6))
-
-# Boxplot for IOR Write
-plt.subplot(1, 2, 1)
-sns.boxplot(x='Day', y='Max Write', hue='Cloud Provider', data=ior_day_mean)
+# Boxplot for IOR Read
+plt.figure(figsize=figsize)
+ax = plt.gca()
+fig = plt.gcf()
+box_plot = sns.boxplot(x='Day', y='Max Write', hue='Cloud Provider', data=combined_ior_df, ax=ax)
 plt.title('IOR Benchmark - Write Performance by Day')
 plt.xlabel('Day')
 plt.ylabel('Max Write')
+add_stats_to_boxplot(box_plot, combined_ior_df, 'Max Write', ax, fig)
+plt.subplots_adjust(bottom=0.3)  # Increase bottom margin to make room for text
+plt.savefig(os.path.join(results_directory, 'boxplots', 'IOR_Benchmark_Write.png'))
+plt.close()
 
 # Boxplot for IOR Read
-plt.subplot(1, 2, 2)
-sns.boxplot(x='Day', y='Max Read', hue='Cloud Provider', data=ior_day_mean)
+plt.figure(figsize=figsize)
+ax = plt.gca()
+fig = plt.gcf()
+box_plot = sns.boxplot(x='Day', y='Max Read', hue='Cloud Provider', data=combined_ior_df, ax=ax)
 plt.title('IOR Benchmark - Read Performance by Day')
 plt.xlabel('Day')
 plt.ylabel('Max Read')
-
-plt.tight_layout()
-plt.show()
-
-# Calculate the mean for each day across all iterations for NPB
-npb_day_mean = combined_npb_df.groupby(['Cloud Provider', 'Day']).mean().reset_index()
-
-# Create box plots for NPB with Day on x-axis and metrics on y-axis
-plt.figure(figsize=(14, 6))
+add_stats_to_boxplot(box_plot, combined_ior_df, 'Max Read', ax, fig)
+plt.subplots_adjust(bottom=0.3)  # Increase bottom margin to make room for text
+plt.savefig(os.path.join(results_directory, 'boxplots', 'IOR_Benchmark_Read.png'))
+plt.close()
 
 # Boxplot for NPB Mop/s
-plt.subplot(1, 2, 1)
-sns.boxplot(x='Day', y='Mop/s total', hue='Cloud Provider', data=npb_day_mean)
+plt.figure(figsize=figsize)
+ax = plt.gca()
+fig = plt.gcf()
+box_plot = sns.boxplot(x='Day', y='Mop/s total', hue='Cloud Provider', data=combined_npb_df, ax=ax)
 plt.title('NPB Benchmark - Mop/s Performance by Day')
 plt.xlabel('Day')
 plt.ylabel('Mop/s total')
+add_stats_to_boxplot(box_plot, combined_npb_df, 'Mop/s total', ax, fig)
+plt.subplots_adjust(bottom=0.3)
+plt.savefig(os.path.join(results_directory, 'boxplots', 'NPB_Benchmark_Mops.png'))
+plt.close()
 
 # Boxplot for NPB Time
-plt.subplot(1, 2, 2)
-sns.boxplot(x='Day', y='Time in seconds', hue='Cloud Provider', data=npb_day_mean)
+plt.figure(figsize=figsize)
+ax = plt.gca()
+fig = plt.gcf()
+box_plot = sns.boxplot(x='Day', y='Time in seconds', hue='Cloud Provider', data=combined_npb_df, ax=ax)
 plt.title('NPB Benchmark - Time Performance by Day')
 plt.xlabel('Day')
 plt.ylabel('Time in seconds')
-
-plt.tight_layout()
-plt.show()
-
-'''
+add_stats_to_boxplot(box_plot, combined_npb_df, 'Time in seconds', ax, fig)
+plt.subplots_adjust(bottom=0.3)
+plt.savefig(os.path.join(results_directory, 'boxplots', 'NPB_Benchmark_Time.png'))
+plt.close()
