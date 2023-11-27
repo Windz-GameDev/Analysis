@@ -38,9 +38,10 @@ Place your benchmark data files in the respective AWS/ and GCP/ directories. Ens
 
 Run the read_data.py script:
 
-bash
-Copy code
+```bash
 python read_data.py
+```
+
 The script will process the data and save the analysis results in the datasets/ and results/ directories.
 
 ## Contributing
