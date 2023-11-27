@@ -162,12 +162,12 @@ combined_ior_df = combined_ior_df[ior_columns]
 combined_npb_df = combined_npb_df[npb_columns]
 
 # If we need to print the whole dataset
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_columns', None)
 
 # Display the first few rows of the DataFrames
-print(combined_ior_df)
-print(combined_npb_df)
+# print(combined_ior_df)
+# print(combined_npb_df)
 
 # Calculate averages for each node configuration for both AWS and GCP
 avg_ior_metrics_df = combined_ior_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Max Write': 'mean', 'Max Read': 'mean'}).reset_index()
@@ -205,7 +205,6 @@ combined_npb_df = combined_npb_df.dropna()
 avg_npb_metrics_df = combined_npb_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Mop/s total': 'mean', 'Time in seconds': 'mean'}).reset_index()
 
 avg_npb_metrics_df.rename(columns={'Mop/s total': 'Average Mop/s', 'Time in seconds': 'Average Time'}, inplace=True)
-print("\n", avg_npb_metrics_df)
 
 # Splitting the data into AWS and GCP groups for NPB
 aws_avg_mops = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Mop/s']
