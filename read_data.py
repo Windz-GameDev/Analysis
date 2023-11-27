@@ -100,8 +100,17 @@ ior_data_gcp, npb_data_gcp = process_directory('GCP', 'GCP', ior_keywords, npb_k
 combined_ior_df = pd.DataFrame(ior_data_aws + ior_data_gcp)
 combined_npb_df = pd.DataFrame(npb_data_aws + npb_data_gcp)
 
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
+# Reorder columns to make 'Cloud Provider' and 'Number of Nodes' first
+ior_columns = ['Cloud Provider', 'Number of Nodes'] + [col for col in combined_ior_df.columns if col not in ['Cloud Provider', 'Number of Nodes']]
+npb_columns = ['Cloud Provider', 'Number of Nodes'] + [col for col in combined_npb_df.columns if col not in ['Cloud Provider', 'Number of Nodes']]
+
+combined_ior_df = combined_ior_df[ior_columns]
+combined_npb_df = combined_npb_df[npb_columns]
+
+
+# If we need to print the whole dataset
+# pd.set_option('display.max_rows', None)
+# pd.set_option('display.max_columns', None)
 
 # Display the first few rows of the DataFrames
 print(combined_ior_df)
@@ -176,45 +185,54 @@ print("\nNPB Benchmark - T-test Results for Average Time:")
 print(npb_time_t_test_result)
 print("\n")
 
+# Create a results directory if it doesn't exist
+results_directory = 'results'
+if not os.path.exists(results_directory):
+    os.makedirs(results_directory)
+
 # Setting the style for the plots
 sns.set(style="whitegrid")
 
-# Creating column charts for the IOR benchmark (Average Max Write and Average Max Read)
+# Save the plots
 plt.figure(figsize=(14, 6))
-
 # Plot for Average Max Write
 plt.subplot(1, 2, 1)
 sns.barplot(x='Number of Nodes', y='Average Max Write', hue='Cloud Provider', data=avg_ior_metrics_df)
 plt.title('IOR Benchmark - Average Max Write')
 plt.xlabel('Number of Nodes')
 plt.ylabel('Average Max Write')
-
 # Plot for Average Max Read
 plt.subplot(1, 2, 2)
 sns.barplot(x='Number of Nodes', y='Average Max Read', hue='Cloud Provider', data=avg_ior_metrics_df)
 plt.title('IOR Benchmark - Average Max Read')
 plt.xlabel('Number of Nodes')
 plt.ylabel('Average Max Read')
-
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(results_directory, 'IOR_Benchmark_Plots.png'))
 
-# Creating column charts for the NPB benchmark (Average Mop/s and Average Time)
 plt.figure(figsize=(14, 6))
-
 # Plot for Average Mop/s
 plt.subplot(1, 2, 1)
 sns.barplot(x='Number of Nodes', y='Average Mop/s', hue='Cloud Provider', data=avg_npb_metrics_df)
 plt.title('NPB Benchmark - Average Mop/s')
 plt.xlabel('Number of Nodes')
 plt.ylabel('Average Mop/s')
-
 # Plot for Average Time
 plt.subplot(1, 2, 2)
 sns.barplot(x='Number of Nodes', y='Average Time', hue='Cloud Provider', data=avg_npb_metrics_df)
 plt.title('NPB Benchmark - Average Time')
 plt.xlabel('Number of Nodes')
 plt.ylabel('Average Time (Seconds)')
-
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(results_directory, 'NPB_Benchmark_Plots.png'))
+
+# Create a datasets directory if it doesn't exist
+datasets_directory = 'datasets'
+if not os.path.exists(datasets_directory):
+    os.makedirs(datasets_directory)
+
+# Save the DataFrames to CSV in the datasets directory
+avg_ior_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_ior_metrics.csv'), index=False)
+avg_npb_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_npb_metrics.csv'), index=False)
+combined_ior_df.to_csv(os.path.join(datasets_directory, 'combined_ior_df.csv'), index=False)
+combined_npb_df.to_csv(os.path.join(datasets_directory, 'combined_npb_df.csv'), index=False)   
