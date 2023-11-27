@@ -236,3 +236,53 @@ avg_ior_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_ior_metrics.csv'
 avg_npb_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_npb_metrics.csv'), index=False)
 combined_ior_df.to_csv(os.path.join(datasets_directory, 'combined_ior_df.csv'), index=False)
 combined_npb_df.to_csv(os.path.join(datasets_directory, 'combined_npb_df.csv'), index=False)   
+
+'''
+
+# Calculate the mean for each day across all iterations for IOR
+ior_day_mean = combined_ior_df.groupby(['Cloud Provider', 'Day']).mean().reset_index()
+
+# Create box plots for IOR with Day on x-axis and metrics on y-axis
+plt.figure(figsize=(14, 6))
+
+# Boxplot for IOR Write
+plt.subplot(1, 2, 1)
+sns.boxplot(x='Day', y='Max Write', hue='Cloud Provider', data=ior_day_mean)
+plt.title('IOR Benchmark - Write Performance by Day')
+plt.xlabel('Day')
+plt.ylabel('Max Write')
+
+# Boxplot for IOR Read
+plt.subplot(1, 2, 2)
+sns.boxplot(x='Day', y='Max Read', hue='Cloud Provider', data=ior_day_mean)
+plt.title('IOR Benchmark - Read Performance by Day')
+plt.xlabel('Day')
+plt.ylabel('Max Read')
+
+plt.tight_layout()
+plt.show()
+
+# Calculate the mean for each day across all iterations for NPB
+npb_day_mean = combined_npb_df.groupby(['Cloud Provider', 'Day']).mean().reset_index()
+
+# Create box plots for NPB with Day on x-axis and metrics on y-axis
+plt.figure(figsize=(14, 6))
+
+# Boxplot for NPB Mop/s
+plt.subplot(1, 2, 1)
+sns.boxplot(x='Day', y='Mop/s total', hue='Cloud Provider', data=npb_day_mean)
+plt.title('NPB Benchmark - Mop/s Performance by Day')
+plt.xlabel('Day')
+plt.ylabel('Mop/s total')
+
+# Boxplot for NPB Time
+plt.subplot(1, 2, 2)
+sns.boxplot(x='Day', y='Time in seconds', hue='Cloud Provider', data=npb_day_mean)
+plt.title('NPB Benchmark - Time Performance by Day')
+plt.xlabel('Day')
+plt.ylabel('Time in seconds')
+
+plt.tight_layout()
+plt.show()
+
+'''
