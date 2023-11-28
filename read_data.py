@@ -180,8 +180,8 @@ aws_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS'
 gcp_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Read']
 
 # Performing t-tests
-avg_write_t_test = stats.ttest_ind(aws_avg_write, gcp_avg_write, equal_var=False)  # T-test for Average Max Write
-avg_read_t_test = stats.ttest_ind(aws_avg_read, gcp_avg_read, equal_var=False)    # T-test for Average Max Read
+avg_write_t_test = stats.ttest_rel(aws_avg_write, gcp_avg_write)  # T-test for Average Max Write
+avg_read_t_test = stats.ttest_rel(aws_avg_read, gcp_avg_read)    # T-test for Average Max Read
 
 # Outputting the results
 avg_write_t_test_result = {"T-statistic": avg_write_t_test.statistic, "P-value": avg_write_t_test.pvalue}
@@ -213,8 +213,8 @@ aws_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS'
 gcp_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Time']
 
 # Performing t-tests for NPB benchmark
-npb_mops_t_test = stats.ttest_ind(aws_avg_mops, gcp_avg_mops, equal_var=False)  # T-test for Average Mop/s
-npb_time_t_test = stats.ttest_ind(aws_avg_time, gcp_avg_time, equal_var=False)  # T-test for Average Time
+npb_mops_t_test = stats.ttest_rel(aws_avg_mops, gcp_avg_mops)  # T-test for Average Mop/s
+npb_time_t_test = stats.ttest_rel(aws_avg_time, gcp_avg_time)  # T-test for Average Time
 
 # Outputting the results
 npb_mops_t_test_result = {"T-statistic": npb_mops_t_test.statistic, "P-value": npb_mops_t_test.pvalue}
