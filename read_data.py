@@ -169,15 +169,18 @@ combined_npb_df = combined_npb_df[npb_columns]
 # print(combined_ior_df)
 # print(combined_npb_df)
 
-# Calculate averages for each node configuration for both AWS and GCP
-avg_ior_metrics_df = combined_ior_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Max Write': 'mean', 'Max Read': 'mean'}).reset_index()
-avg_ior_metrics_df.rename(columns={'Max Write': 'Average Max Write', 'Max Read': 'Average Max Read'}, inplace=True)
+avg_std_ior_metrics_df = (combined_ior_df
+                          .groupby(['Cloud Provider', 'Number of Nodes'])
+                          .agg({'Max Write': ['mean', 'std'], 'Max Read': ['mean', 'std']})
+                          .reset_index())
+avg_std_ior_metrics_df.columns = ['Cloud Provider', 'Number of Nodes', 'Average Max Write', 'Std Dev Max Write', 'Average Max Read', 'Std Dev Max Read']
+print(f"\nIOR Averages and Standard Deviations\n{avg_std_ior_metrics_df}")
 
 # Splitting the data into AWS and GCP groups
-aws_avg_write = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Write']
-gcp_avg_write = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Write']
-aws_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Read']
-gcp_avg_read = avg_ior_metrics_df[(avg_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Read']
+aws_avg_write = avg_std_ior_metrics_df[(avg_std_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Write']
+gcp_avg_write = avg_std_ior_metrics_df[(avg_std_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Write']
+aws_avg_read = avg_std_ior_metrics_df[(avg_std_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Read']
+gcp_avg_read = avg_std_ior_metrics_df[(avg_std_ior_metrics_df['Cloud Provider'] == 'GCP')]['Average Max Read']
 
 # Performing t-tests
 avg_write_t_test = stats.ttest_rel(aws_avg_write, gcp_avg_write)  # T-test for Average Max Write
@@ -201,16 +204,18 @@ combined_npb_df['Number of Nodes'] = pd.to_numeric(combined_npb_df['Number of No
 # Drop rows with NaN values if any were created during conversion
 combined_npb_df = combined_npb_df.dropna()
 
-# Calculate averages for each node configuration for both AWS and GCP
-avg_npb_metrics_df = combined_npb_df.groupby(['Cloud Provider', 'Number of Nodes']).agg({'Mop/s total': 'mean', 'Time in seconds': 'mean'}).reset_index()
-
-avg_npb_metrics_df.rename(columns={'Mop/s total': 'Average Mop/s', 'Time in seconds': 'Average Time'}, inplace=True)
+avg_std_npb_metrics_df = (combined_npb_df
+                          .groupby(['Cloud Provider', 'Number of Nodes'])
+                          .agg({'Mop/s total': ['mean', 'std'], 'Time in seconds': ['mean', 'std']})
+                          .reset_index())
+avg_std_npb_metrics_df.columns = ['Cloud Provider', 'Number of Nodes', 'Average Mop/s', 'Std Dev Mop/s', 'Average Time', 'Std Dev Time']
+print(f"\nNPB Averages and Standard Deviations\n{avg_std_npb_metrics_df}")
 
 # Splitting the data into AWS and GCP groups for NPB
-aws_avg_mops = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Mop/s']
-gcp_avg_mops = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Mop/s']
-aws_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Time']
-gcp_avg_time = avg_npb_metrics_df[(avg_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Time']
+aws_avg_mops = avg_std_npb_metrics_df[(avg_std_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Mop/s']
+gcp_avg_mops = avg_std_npb_metrics_df[(avg_std_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Mop/s']
+aws_avg_time = avg_std_npb_metrics_df[(avg_std_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Time']
+gcp_avg_time = avg_std_npb_metrics_df[(avg_std_npb_metrics_df['Cloud Provider'] == 'GCP')]['Average Time']
 
 # Performing t-tests for NPB benchmark
 npb_mops_t_test = stats.ttest_rel(aws_avg_mops, gcp_avg_mops)  # T-test for Average Mop/s
@@ -224,8 +229,7 @@ npb_time_t_test_result = {"T-statistic": npb_time_t_test.statistic, "P-value": n
 print("\nNPB Benchmark - T-test Results for Average Mop/s:")
 print(npb_mops_t_test_result)
 print("\nNPB Benchmark - T-test Results for Average Time:")
-print(npb_time_t_test_result)
-print("\n")
+print(f"{npb_time_t_test_result}\n")
 
 # Create a results directory if it doesn't exist
 results_directory = 'results'
@@ -240,18 +244,18 @@ plt.figure(figsize=(14, 6))
 
 # Plot for IOR Average Max Write
 ax1 = plt.subplot(1, 2, 1)
-sns.barplot(x='Number of Nodes', y='Average Max Write', hue='Cloud Provider', data=avg_ior_metrics_df)
+sns.barplot(x='Number of Nodes', y='Average Max Write', hue='Cloud Provider', data=avg_std_ior_metrics_df)
 ax1.set_title('IOR Benchmark - Average Max Write', fontsize=12)
 ax1.set_xlabel('Number of Nodes')
-ax1.set_ylabel('Average Max Write')
+ax1.set_ylabel('Average Max Write (MiB/sec)')
 annotate_ttest_results(ax1, avg_write_t_test_result)
 
 # Plot for IOR Average Max Read
 ax2 = plt.subplot(1, 2, 2)
-sns.barplot(x='Number of Nodes', y='Average Max Read', hue='Cloud Provider', data=avg_ior_metrics_df)
+sns.barplot(x='Number of Nodes', y='Average Max Read', hue='Cloud Provider', data=avg_std_ior_metrics_df)
 ax2.set_title('IOR Benchmark - Average Max Read', fontsize=12)
 ax2.set_xlabel('Number of Nodes')
-ax2.set_ylabel('Average Max Read')
+ax2.set_ylabel('Average Max Read (MiB/sec)')
 annotate_ttest_results(ax2, avg_read_t_test_result)
 
 plt.tight_layout()
@@ -262,7 +266,7 @@ plt.figure(figsize=(14, 6))
 
 # Plot for NPB Average Mop/s
 ax3 = plt.subplot(1, 2, 1)
-sns.barplot(x='Number of Nodes', y='Average Mop/s', hue='Cloud Provider', data=avg_npb_metrics_df)
+sns.barplot(x='Number of Nodes', y='Average Mop/s', hue='Cloud Provider', data=avg_std_npb_metrics_df)
 ax3.set_title('NPB Benchmark - Average Mop/s', fontsize=12)
 ax3.set_xlabel('Number of Nodes')
 ax3.set_ylabel('Average Mop/s')
@@ -270,7 +274,7 @@ annotate_ttest_results(ax3, npb_mops_t_test_result)
 
 # Plot for NPB Average Time
 ax4 = plt.subplot(1, 2, 2)
-sns.barplot(x='Number of Nodes', y='Average Time', hue='Cloud Provider', data=avg_npb_metrics_df)
+sns.barplot(x='Number of Nodes', y='Average Time', hue='Cloud Provider', data=avg_std_npb_metrics_df)
 ax4.set_title('NPB Benchmark - Average Time', fontsize=12)
 ax4.set_xlabel('Number of Nodes')
 ax4.set_ylabel('Average Time (Seconds)')
@@ -279,17 +283,6 @@ annotate_ttest_results(ax4, npb_time_t_test_result)
 plt.tight_layout()
 plt.savefig(os.path.join(results_directory, 'NPB_Benchmark_Plots.png'))
 plt.close()
-
-# Create a datasets directory if it doesn't exist
-datasets_directory = 'datasets'
-if not os.path.exists(datasets_directory):
-    os.makedirs(datasets_directory)
-
-# Save the DataFrames to CSV in the datasets directory
-avg_ior_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_ior_metrics.csv'), index=False)
-avg_npb_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_npb_metrics.csv'), index=False)
-combined_ior_df.to_csv(os.path.join(datasets_directory, 'combined_ior_df.csv'), index=False)
-combined_npb_df.to_csv(os.path.join(datasets_directory, 'combined_npb_df.csv'), index=False)   
 
 boxplots_directory = os.path.join(results_directory, 'boxplots')
 if not os.path.exists(boxplots_directory):
@@ -393,3 +386,34 @@ for metric_to_plot in ['Mop/s total', 'Time in seconds']:
     file_name = f'NPB_{sanitize_filename(metric_to_plot)}_Grouped_Barplot.png'
     plt.savefig(os.path.join(results_directory, file_name))
     plt.close()
+
+# Create a datasets directory if it doesn't exist
+datasets_directory = 'datasets'
+if not os.path.exists(datasets_directory):
+    os.makedirs(datasets_directory)
+
+# Rename columns in combined_ior_df for clarity
+combined_ior_df.columns = [
+    'Cloud Provider', 
+    'Number of Nodes', 
+    'Max Write (MiB/sec)', 
+    'Max Read (MiB/sec)', 
+    'Day', 
+    'Test Iteration'
+]
+
+# Rename columns in avg_std_ior_metrics_df for clarity
+avg_std_ior_metrics_df.columns = [
+    'Cloud Provider', 
+    'Number of Nodes', 
+    'Average Max Write (MiB/sec)', 
+    'Std Dev Max Write (MiB/sec)', 
+    'Average Max Read (MiB/sec)', 
+    'Std Dev Max Read (MiB/sec)'
+]
+
+# Save the DataFrames to CSV in the datasets directory
+avg_std_ior_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_std_ior_metrics.csv'), index=False)
+avg_std_npb_metrics_df.to_csv(os.path.join(datasets_directory, 'avg_std_npb_metrics.csv'), index=False)
+combined_ior_df.to_csv(os.path.join(datasets_directory, 'combined_ior_df.csv'), index=False)
+combined_npb_df.to_csv(os.path.join(datasets_directory, 'combined_npb_df.csv'), index=False)   

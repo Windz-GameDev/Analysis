@@ -1,4 +1,4 @@
-Cloud Provider,Number of Nodes,Max Write,Max Read,Day,Test Iteration
+Cloud Provider,Number of Nodes,Max Write (MiB/sec),Max Read (MiB/sec),Day,Test Iteration
 AWS,1,59.95,195.26,1,1
 AWS,2,120.13,249.16,1,1
 AWS,4,151.26,276.7,1,1
