@@ -125,6 +125,10 @@ def annotate_ttest_results(ax, t_test_result, offset_below_title=0.2):
 def sanitize_filename(name):
     return name.replace(" ", "_").replace("/", "_")
 
+# Function to calculate Coefficient of Variation (COV)
+def calculate_cov(df, mean_col, std_col):
+    return (df[std_col] / df[mean_col]) * 100
+
 # Define the keywords for IOR and NPB metrics
 ior_keywords = ['Max Write', 'Max Read']
 npb_keywords = ['Mop/s total', 'Time in seconds']
@@ -174,7 +178,17 @@ avg_std_ior_metrics_df = (combined_ior_df
                           .agg({'Max Write': ['mean', 'std'], 'Max Read': ['mean', 'std']})
                           .reset_index())
 avg_std_ior_metrics_df.columns = ['Cloud Provider', 'Number of Nodes', 'Average Max Write', 'Std Dev Max Write', 'Average Max Read', 'Std Dev Max Read']
-print(f"\nIOR Averages and Standard Deviations\n{avg_std_ior_metrics_df}")
+
+# Adding COV to IOR metrics dataframe
+avg_std_ior_metrics_df['COV Max Write (%)'] = calculate_cov(avg_std_ior_metrics_df, 'Average Max Write', 'Std Dev Max Write')
+avg_std_ior_metrics_df['COV Max Read (%)'] = calculate_cov(avg_std_ior_metrics_df, 'Average Max Read', 'Std Dev Max Read')
+
+# Reorder columns for avg_std_ior_metrics_df
+avg_std_ior_metrics_df = avg_std_ior_metrics_df[['Cloud Provider', 'Number of Nodes', 
+                                                 'Average Max Write', 'Std Dev Max Write', 'COV Max Write (%)', 
+                                                 'Average Max Read', 'Std Dev Max Read', 'COV Max Read (%)']]
+
+print(f"\nIOR Averages, Standard Deviations and COV\n{avg_std_ior_metrics_df}")
 
 # Splitting the data into AWS and GCP groups
 aws_avg_write = avg_std_ior_metrics_df[(avg_std_ior_metrics_df['Cloud Provider'] == 'AWS')]['Average Max Write']
@@ -209,7 +223,17 @@ avg_std_npb_metrics_df = (combined_npb_df
                           .agg({'Mop/s total': ['mean', 'std'], 'Time in seconds': ['mean', 'std']})
                           .reset_index())
 avg_std_npb_metrics_df.columns = ['Cloud Provider', 'Number of Nodes', 'Average Mop/s', 'Std Dev Mop/s', 'Average Time', 'Std Dev Time']
-print(f"\nNPB Averages and Standard Deviations\n{avg_std_npb_metrics_df}")
+
+# Adding COV to NPB metrics dataframe
+avg_std_npb_metrics_df['COV Mop/s (%)'] = calculate_cov(avg_std_npb_metrics_df, 'Average Mop/s', 'Std Dev Mop/s')
+avg_std_npb_metrics_df['COV Time (%)'] = calculate_cov(avg_std_npb_metrics_df, 'Average Time', 'Std Dev Time')
+
+# Reorder columns for avg_std_npb_metrics_df
+avg_std_npb_metrics_df = avg_std_npb_metrics_df[['Cloud Provider', 'Number of Nodes', 
+                                                 'Average Mop/s', 'Std Dev Mop/s', 'COV Mop/s (%)', 
+                                                 'Average Time', 'Std Dev Time', 'COV Time (%)']]
+
+print(f"\nNPB Averages, Standard Deviations and COV\n{avg_std_npb_metrics_df}")
 
 # Splitting the data into AWS and GCP groups for NPB
 aws_avg_mops = avg_std_npb_metrics_df[(avg_std_npb_metrics_df['Cloud Provider'] == 'AWS')]['Average Mop/s']
@@ -402,14 +426,16 @@ combined_ior_df.columns = [
     'Test Iteration'
 ]
 
-# Rename columns in avg_std_ior_metrics_df for clarity
-avg_std_ior_metrics_df.columns = [
+# Correctly renaming columns in avg_std_npb_metrics_df after adding COV columns
+avg_std_npb_metrics_df.columns = [
     'Cloud Provider', 
     'Number of Nodes', 
-    'Average Max Write (MiB/sec)', 
-    'Std Dev Max Write (MiB/sec)', 
-    'Average Max Read (MiB/sec)', 
-    'Std Dev Max Read (MiB/sec)'
+    'Average Mop/s', 
+    'Std Dev Mop/s', 
+    'COV Mop/s (%)', 
+    'Average Time', 
+    'Std Dev Time',
+    'COV Time (%)'
 ]
 
 # Save the DataFrames to CSV in the datasets directory
